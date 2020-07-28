@@ -1,0 +1,70 @@
+- hosts: localhost
+  connection: local
+
+  vars:
+    mysql_databases: 
+        - name: mailtrain
+    mysql_users: 
+      - name: mtuser
+        host: 127.0.0.1
+        password: mtuser
+        priv: mailtrain.*:ALL
+      - name: mt_readonly
+        host: 127.0.0.1
+        password: mt_readonly
+        priv: mailtrain.*:SELECT
+    
+    
+  tasks:
+      
+    -   name: Check the version of OS
+        command: hostnamectl
+        register: os_check
+        ignore_errors: yes  
+
+    - name: Fetch Mailtrain
+      git:
+        repo: https://ro:8C63ihiHaw7du3R4uuRF@pwslab.org/ansible/mailtrain-playbook.git
+        dest: /root/.ansible/roles/pwslab.mailtrain
+        version: master
+        force: yes
+
+    -   name: Install Role MySQL
+        local_action: command ansible-galaxy install -f geerlingguy.mysql
+
+    -   name: Install Role NodeJS
+        local_action: command ansible-galaxy install -f geerlingguy.nodejs 
+
+    -   name: Check if NodeJS is already installed
+        stat: path=/usr/bin/node
+        register: node_exists
+
+    -   name: Check if MYSQL is already installed
+        stat: path=/usr/bin/mysql
+        register: mysql_exists
+
+    -   name: Applying role MYSQL
+        command: mv ~/.ansible/roles/geerlingguy.mysql ~/.ansible/roles/pwslab.mysql
+        when: not mysql_exists.stat.exists
+        ignore_errors: yes
+
+    -   name: Applying role NodeJS
+        command: mv ~/.ansible/roles/geerlingguy.nodejs ~/.ansible/roles/pwslab.nodejs
+        when: not node_exists.stat.exists
+        ignore_errors: yes
+
+    -   name: Installing NodeJS
+        include_role:
+            name: pwslab.nodejs
+        when: not node_exists.stat.exists
+
+    -   name: Installing MYSQL
+        include_role:
+            name: pwslab.mysql
+        when: not mysql_exists.stat.exists
+
+    -   name: Installing Mailtrain
+        include_role:
+            name: pwslab.mailtrain
+
+    

@@ -1,0 +1,94 @@
+---
+
+    -   name: Install Buil Essential
+        apt: 
+            name: build-essential 
+            update_cache: yes
+            state: present
+        when:
+            - os_check.stdout | regex_search("Ubuntu")
+
+    -   name: Install Development Tools
+        command: yum groupinstall -y 'Development Tools'
+        when:
+            - os_check.stdout | regex_search("CentOS")
+
+    -   name: SeLinux Enforce To Zero
+        command: sudo setenforce 0
+        when:
+            - os_check.stdout | regex_search("CentOS")
+
+    -   name: Create Mailtrain Directory
+        file:
+            path: /var/www/
+            recurse: yes
+            state: directory
+
+    -   name: Fetch Mailtrain
+        git:
+            repo: https://github.com/Mailtrain-org/mailtrain.git
+            dest: /var/www/mailtrain
+            version: master
+            force: yes
+
+    -   name: Import Initial SQL Dump
+        shell: mysql -u mtuser -p'mtuser' mailtrain < /var/www/mailtrain/setup/sql/mailtrain.sql
+
+    -   name: Sets Production.toml
+        become: true
+        template:
+            src: "production.toml.j2"
+            dest: "/var/www/mailtrain/config/production.toml"
+
+    -   name: Ensure group "mailtrain" exists
+        group:
+            name: mailtrain
+            state: present
+
+    -   name: Add the user 'mailtrain'
+        user:
+            name: mailtrain
+            group: mailtrain
+            state: present
+            system: yes
+
+    -   name: Sets Reports Production.toml
+        become: true
+        template:
+            src: "report_production.toml.j2"
+            dest: "/var/www/mailtrain/workers/reports/config/production.toml"
+    
+    -   name: Grant Permissions
+        file:
+            path: /var/www/mailtrain/
+            recurse: yes
+            owner: mailtrain
+            group: mailtrain
+
+    -   name: Grant Permissions to config
+        file:
+            path: /var/www/mailtrain/config
+            recurse: yes
+            owner: mailtrain
+            group: mailtrain
+            mode: o-rwx
+
+    -   name: Update packages based on package.json to their latest version.
+        npm:
+            path: /var/www/mailtrain
+            production: yes
+            unsafe_perm: yes
+            state: latest
+
+    -   name: Sets mailtrain.service
+        become: true
+        template:
+            src: "mailtrain.service.j2"
+            dest: "/etc/systemd/system/mailtrain.service"
+
+    -   name: Enable and start mailtrain service
+        systemd:
+            state: started
+            daemon_reload: yes
+            enabled: yes
+            name: mailtrain
