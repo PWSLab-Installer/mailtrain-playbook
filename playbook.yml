@@ -61,7 +61,9 @@
     -   name: Installing MYSQL
         include_role:
             name: pwslab.mysql
-        when: not mysql_exists.stat.exists
+        when: 
+            - not mysql_exists.stat.exists
+            - not os_check.stdout | regex_search("Ubuntu 20.04")
 
     -   name: Installing Mailtrain
         include_role:
