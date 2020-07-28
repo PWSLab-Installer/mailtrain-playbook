@@ -39,8 +39,14 @@
             version: master
             force: yes
 
+    -   name: Create DB mailtrain - Ubuntu 20.04
+        shell: mariadb -u root -e "create database mailtrain;"
+        when:
+            - os_check.stdout | regex_search("Ubuntu 20")
+
     -   name: Grant DB Permissions - Ubuntu 20.04
         shell: mariadb -u root -e "CREATE USER 'mtuser'@'localhost' identified by 'mtuser';"
+        ignore_errors: yes
         when:
             - os_check.stdout | regex_search("Ubuntu 20")
 
