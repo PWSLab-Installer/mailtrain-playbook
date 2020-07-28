@@ -7,11 +7,11 @@
     mysql_users: 
       - name: mtuser
         host: 127.0.0.1
-        password: mtuser
+        password: "mtuser"
         priv: mailtrain.*:ALL
       - name: mt_readonly
         host: 127.0.0.1
-        password: mt_readonly
+        password: "mt_readonly"
         priv: mailtrain.*:SELECT
     
     
